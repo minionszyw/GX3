@@ -1,0 +1,226 @@
+version: '3.8'
+
+services:
+  # PostgreSQL数据库
+  postgres:
+    image: postgres:15-alpine
+    container_name: guoxue_postgres
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-guoxue}
+      POSTGRES_USER: ${POSTGRES_USER:-user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    networks:
+      - guoxue_network
+
+  # Redis缓存
+  redis:
+    image: redis:7-alpine
+    container_name: guoxue_redis
+    restart: always
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - guoxue_network
+
+  # Chroma向量数据库
+  chroma:
+    image: chromadb/chroma:0.4.18
+    container_name: guoxue_chroma
+    restart: always
+    ports:
+      - "${CHROMA_PORT:-8001}:8000"
+    volumes:
+      - chroma_data:/chroma/chroma/
+    environment:
+      - CHROMA_DB_IMPL=clickhouse
+    networks:
+      - guoxue_network
+
+  # MinIO对象存储
+  minio:
+    image: minio/minio:RELEASE.2023-11-20T22-40-07Z
+    container_name: guoxue_minio
+    restart: always
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio_data:/data
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    command: server /data --console-address :9001
+    networks:
+      - guoxue_network
+
+  # Nginx反向代理
+  nginx:
+    image: nginx:alpine
+    container_name: guoxue_nginx
+    restart: always
+    ports:
+      - "${NGINX_PORT:-80}:80"
+      - "${NGINX_SSL_PORT:-443}:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/certs:/etc/nginx/certs
+      - ./nginx/logs:/var/log/nginx
+    depends_on:
+      - backend
+    networks:
+      - guoxue_network
+
+  # 后端服务
+  backend:
+    build:
+      context: ./backend
+    container_name: guoxue_backend
+    restart: always
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-guoxue}
+      - REDIS_URL=redis://redis:6379/0
+      - CHROMA_DB_URL=http://chroma:8000
+      - MINIO_ENDPOINT=http://minio:9000
+    depends_on:
+      - postgres
+      - redis
+      - chroma
+      - minio
+    volumes:
+      - ./backend:/app
+    networks:
+      - guoxue_network
+
+  # Celery Worker
+  celery_worker:
+    build:
+      context: ./backend
+    container_name: guoxue_celery_worker
+    restart: always
+    command: celery -A tasks.worker worker --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-guoxue}
+      - REDIS_URL=redis://redis:6379/0
+      - CHROMA_DB_URL=http://chroma:8000
+    depends_on:
+      - postgres
+      - redis
+      - chroma
+    volumes:
+      - ./backend:/app
+    networks:
+      - guoxue_network
+
+  # Celery Beat (定时任务)
+  celery_beat:
+    build:
+      context: ./backend
+    container_name: guoxue_celery_beat
+    restart: always
+    command: celery -A tasks.worker beat --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-guoxue}
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ./backend:/app
+    networks:
+      - guoxue_network
+
+  # Prometheus监控
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: guoxue_prometheus
+    restart: always
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    networks:
+      - guoxue_network
+
+  # Grafana监控面板
+  grafana:
+    image: grafana/grafana-enterprise:10.2.2
+    container_name: guoxue_grafana
+    restart: always
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - guoxue_network
+
+  # ELK Stack - Elasticsearch
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: guoxue_elasticsearch
+    restart: always
+    ports:
+      - "${ES_PORT:-9200}:9200"
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    networks:
+      - guoxue_network
+
+  # ELK Stack - Logstash
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.11.0
+    container_name: guoxue_logstash
+    restart: always
+    ports:
+      - "${LOGSTASH_PORT:-5044}:5044"
+    volumes:
+      - ./logstash/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+      - ./logstash/logs:/logs
+    depends_on:
+      - elasticsearch
+    networks:
+      - guoxue_network
+
+  # ELK Stack - Kibana
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: guoxue_kibana
+    restart: always
+    ports:
+      - "${KIBANA_PORT:-5601}:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=["http://elasticsearch:9200"]
+    depends_on:
+      - elasticsearch
+    networks:
+      - guoxue_network
+
+networks:
+  guoxue_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  chroma_data:
+  minio_data:
+  prometheus_data:
+  grafana_data:
+  es_data:

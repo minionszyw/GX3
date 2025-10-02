@@ -1,0 +1,42 @@
+# Web框架
+fastapi==0.104.1
+uvicorn==0.24.0
+
+# 数据库
+sqlalchemy==2.0.23
+psycopg2-binary==2.9.9
+
+# 缓存和消息队列
+redis==5.0.1
+celery==5.3.4
+
+# AI和机器学习
+langchain==0.0.352
+langchain-community==0.0.11
+chromadb==0.4.18
+deepseek-coder==1.0.0
+
+# 安全和认证
+python-jose==3.3.0
+passlib==1.7.4
+python-multipart==0.0.6
+bcrypt==4.0.1
+
+# 数据验证
+pydantic==2.5.0
+pydantic-settings==2.0.3
+
+# 日志和监控
+python-json-logger==2.0.7
+
+# 工具
+requests==2.31.0
+python-dotenv==1.0.0
+
+# 测试
+pytest==7.4.3
+pytest-cov==4.1.0
+
+# 代码质量
+black==23.11.0
+flake8==6.1.0

@@ -63,7 +63,5 @@ Docker + Docker Compose
 
 ## 开发文档：
 - [全栈开发方案](dev.md)
-- [后端开发规划](backend-development-plan.md)
-- [开发总结报告](development-summary.md)
 - [API文档](docs/api/api-documentation.md)
 - [部署指南](docs/deployment/deployment-guide.md)

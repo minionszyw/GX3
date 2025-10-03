@@ -9,7 +9,6 @@
 - JWT认证
 - token计费
 
-
 ## 主要页面：
 - AI对话（tabbar）：
   - 消息区：头像、消息气泡、时间戳
@@ -25,10 +24,10 @@
     - 关于我们
   - 退出登录
 
-  ## 前端要求：
-  - 采用苹果设计师标准的极简风格设计
-  - 使用uni-app组件、样式、api
-  - 界面与逻辑分离，便于维护和扩展
+## 前端要求：
+- 采用苹果设计师标准的极简风格设计
+- 使用uni-app组件、样式、api
+- 界面与逻辑分离，便于维护和扩展
 
 ## 商业模式：
 - 按使用token计费。
@@ -58,10 +57,41 @@
 - HBuilder X
 - 微信开发者工具
 
+## 环境配置：
+
+### 开发环境
+- **前端**：HBuilderX + 微信开发者工具
+- **后端**：WSL2 Ubuntu中直接运行（不使用Docker）
+
+启动开发环境：
+```bash
+# 在WSL2中执行
+cd ~/GX3/backend
+# 创建虚拟环境
+python3 -m venv venv
+source venv/bin/activate
+# 安装依赖
+pip install -r requirements.txt
+# 启动服务
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+### 生产环境
+- **前端**：上传到微信小程序平台
+- **后端**：使用Docker部署到服务器
+
+部署生产环境：
+```bash
+# 在服务器中执行
+cd /path/to/GX3
+docker-compose up -d --build
+```
+
 ## 部署方式：
 Docker + Docker Compose
 
 ## 开发文档：
 - [全栈开发方案](dev.md)
 - [API文档](docs/api/api-documentation.md)
-- [部署指南](docs/deployment/deployment-guide.md)
+- [开发环境部署指南](docs/deployment/development-guide.md)
+- [生产环境部署指南](docs/deployment/production-guide.md)

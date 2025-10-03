@@ -1,4 +1,4 @@
-from langchain.chat_models import ChatDeepSeek
+from langchain.chat_models import ChatOpenAI  # 使用OpenAI作为替代
 from langchain.memory import ConversationBufferWindowMemory
 from langchain.chains import ConversationalRetrievalChain
 import logging
@@ -8,7 +8,12 @@ class ChatService:
     def __init__(self):
         # 初始化AI模型
         api_key = os.getenv("DEEPSEEK_API_KEY")
-        self.chat_model = ChatDeepSeek(api_key=api_key) if api_key else None
+        # 使用ChatOpenAI作为替代，如果需要使用DeepSeek，可以配置相应的base_url
+        self.chat_model = ChatOpenAI(
+            openai_api_key=api_key,
+            openai_api_base="https://api.deepseek.com/v1",  # DeepSeek API endpoint
+            model_name="deepseek-chat"
+        ) if api_key else None
         
         # 初始化记忆模块
         self.memory = ConversationBufferWindowMemory(k=5)

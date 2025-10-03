@@ -14,7 +14,7 @@ celery==5.3.4
 langchain==0.0.352
 langchain-community==0.0.11
 chromadb==0.4.18
-deepseek-coder==1.0.0
+# deepseek-coder==1.0.0  # 注释掉不存在的包
 
 # 安全和认证
 python-jose==3.3.0

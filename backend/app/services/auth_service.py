@@ -2,9 +2,11 @@ from datetime import datetime, timedelta
 from jose import jwt, JWTError
 from passlib.context import CryptContext
 from fastapi import HTTPException, status, Depends
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from app.models import User
 import os
+import httpx
 
 # 密码加密上下文
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -13,6 +15,9 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-secret-key")
 ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", 30))
+
+# OAuth2密码Bearer
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
 class AuthService:
     def __init__(self, db: Session):
@@ -33,12 +38,45 @@ class AuthService:
             return False
         return user
     
-    def authenticate_wechat_user(self, openid: str):
+    def authenticate_wechat_user(self, code: str):
         """验证微信用户"""
-        user = self.db.query(User).filter(User.openid == openid).first()
-        if not user:
+        try:
+            # 调用微信API验证code
+            app_id = os.getenv("WECHAT_APP_ID")
+            app_secret = os.getenv("WECHAT_APP_SECRET")
+            
+            if not app_id or not app_secret:
+                raise Exception("微信配置缺失")
+            
+            # 调用微信接口获取access_token和openid
+            url = f"https://api.weixin.qq.com/sns/jscode2session?appid={app_id}&secret={app_secret}&js_code={code}&grant_type=authorization_code"
+            
+            response = httpx.get(url)
+            data = response.json()
+            
+            if "errcode" in data:
+                raise Exception(f"微信登录失败: {data}")
+            
+            openid = data.get("openid")
+            session_key = data.get("session_key")
+            
+            # 查找或创建用户
+            user = self.db.query(User).filter(User.openid == openid).first()
+            if not user:
+                # 创建新用户
+                user = User(
+                    openid=openid,
+                    nickname=f"微信用户_{openid[:8]}",
+                    tokens=1000  # 新用户赠送1000 tokens
+                )
+                self.db.add(user)
+                self.db.commit()
+                self.db.refresh(user)
+            
+            return user
+        except Exception as e:
+            print(f"微信登录验证失败: {str(e)}")
             return False
-        return user
     
     def create_access_token(self, data: dict, expires_delta: timedelta = None):
         """创建访问令牌"""

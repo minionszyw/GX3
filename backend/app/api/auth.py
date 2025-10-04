@@ -36,14 +36,11 @@ def get_auth_service(db: Session = Depends(get_db)):
 @router.post("/wechat-login", response_model=Token)
 async def wechat_login(request: WechatLoginRequest, auth_service: AuthService = Depends(get_auth_service)):
     """微信登录"""
-    # 这里应该调用微信API验证code
-    # 示例：
-    # user = auth_service.authenticate_wechat_user(request.code)
-    # if not user:
-    #     raise HTTPException(status_code=401, detail="Invalid credentials")
+    user = auth_service.authenticate_wechat_user(request.code)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
     
-    # 临时返回示例token
-    access_token = auth_service.create_access_token(data={"sub": "wechat_user"})
+    access_token = auth_service.create_access_token(data={"sub": str(user.id)})
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.post("/email-login", response_model=Token)

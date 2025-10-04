@@ -1,5 +1,5 @@
 // API工具函数
-const API_BASE_URL = 'https://api.guoxuedashi.com'
+const API_BASE_URL = 'http://localhost:8000/api'
 
 class ApiClient {
 	constructor() {

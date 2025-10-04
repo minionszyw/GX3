@@ -40,6 +40,23 @@ class AuthService:
     
     def authenticate_wechat_user(self, code: str):
         """验证微信用户"""
+        # 检查是否为开发环境下的测试code
+        environment = os.getenv("ENVIRONMENT", "production")
+        if environment == "development" and code == "test_code_123456":
+            # 在开发环境中，为测试code创建或返回测试用户
+            user = self.db.query(User).filter(User.openid == "test_openid").first()
+            if not user:
+                # 创建测试用户
+                user = User(
+                    openid="test_openid",
+                    nickname="测试用户",
+                    tokens=1000  # 新用户赠送1000 tokens
+                )
+                self.db.add(user)
+                self.db.commit()
+                self.db.refresh(user)
+            return user
+        
         try:
             # 调用微信API验证code
             app_id = os.getenv("WECHAT_APP_ID")

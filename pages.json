@@ -14,9 +14,9 @@
 	"pages": [
 		// pages数组中第一项表示应用启动页，参考：https://uniapp.dcloud.io/collocation/pages
 		{
-			"path": "pages/chat/chat",
+			"path": "pages/auth/login",
 			"style": {
-				"navigationBarTitleText": "国学大师",
+				"navigationBarTitleText": "登录",
 				"app-plus": {
 					"bounce": "vertical"
 				}
@@ -1401,7 +1401,7 @@
 		"borderStyle": "black",
 		"backgroundColor": "#F8F8F8",
 		"list": [{
-				"pagePath": "pages/chat/chat",
+				"pagePath": "pages/auth/login",
 				"iconPath": "static/chat.png",
 				"selectedIconPath": "static/chatHL.png",
 				"text": "国学对话"

@@ -20,8 +20,19 @@ export const useUserStore = defineStore('user', {
 		// 微信登录
 		async loginWithWechat() {
 			try {
+				// 获取微信登录code
+				const loginResult = await new Promise((resolve, reject) => {
+					uni.login({
+						provider: 'weixin',
+						success: (res) => resolve(res),
+						fail: (err) => reject(err)
+					});
+				});
+				
 				// 实际微信登录API调用
-				const response = await apiClient.post('/auth/wechat-login')
+				const response = await apiClient.post('/auth/wechat-login', {
+					code: loginResult.code
+				});
 				
 				this.token = response.token
 				this.userInfo = response.user

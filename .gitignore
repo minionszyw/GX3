@@ -75,6 +75,7 @@ backend/*.pyo
 backend/*.pyd
 backend/*.so
 backend/build/
+backend/venv/
 
 # Docker
 docker-compose.override.yml
